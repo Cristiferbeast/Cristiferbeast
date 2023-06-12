@@ -1,0 +1,28 @@
+name: Language Stats
+
+on:
+  workflow_dispatch:
+
+jobs:
+  language-stats:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install cloc
+      run: sudo apt-get install -y cloc
+
+    - name: Run cloc and generate stats
+      run: cloc --json --exclude-dir=.github | tee stats.json
+
+    - name: Parse stats and generate percentages
+      run: |
+        echo "::set-output name=languages::$(cat stats.json | jq 'del(.header) | .SUM.language')" > stats.json
+        echo "::set-output name=percentages::$(cat stats.json | jq 'to_entries | map_values({key:.key, value:(.value.code+0)/.SUM.code*100})')" > stats.json
+
+    - name: Display language percentages
+      run: |
+        echo "Language percentages:"
+        cat stats.json | jq '.percentages'
